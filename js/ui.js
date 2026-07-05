@@ -17,6 +17,8 @@ class UiService {
     this.calendarMonth = new Date().getMonth();
     this.calendarYear = new Date().getFullYear();
     this.selectedCalendarDate = new Date().toISOString().split('T')[0];
+    this.audioCtx = null;
+    this.initGlobalHapticFeedback();
   }
 
   /**
@@ -94,6 +96,7 @@ class UiService {
   }
 
   triggerConfetti() {
+    this.triggerHaptic('success');
     if (window.confetti) {
       confetti({
         particleCount: 80,
@@ -731,6 +734,129 @@ class UiService {
     });
 
     if (window.lucide) lucide.createIcons({ root: container });
+  }
+
+  /**
+   * Kích hoạt hiệu ứng Haptic Feedback (Rung vật lý & Âm thanh click kiểu iOS)
+   * @param {string} type - 'light' | 'medium' | 'heavy' | 'success' | 'warning'
+   */
+  triggerHaptic(type = 'light') {
+    if ('vibrate' in navigator) {
+      try {
+        switch (type) {
+          case 'light':
+            navigator.vibrate(8);
+            break;
+          case 'medium':
+            navigator.vibrate(15);
+            break;
+          case 'heavy':
+            navigator.vibrate([12, 40, 12]);
+            break;
+          case 'success':
+            navigator.vibrate([15, 50, 15, 50, 25]);
+            break;
+          case 'warning':
+            navigator.vibrate([20, 40, 20]);
+            break;
+          default:
+            navigator.vibrate(10);
+        }
+      } catch (e) {
+        // Bỏ qua nếu trình duyệt chặn
+      }
+    }
+
+    this.playIosClickSound(type);
+  }
+
+  /**
+   * Tạo âm thanh haptic tick siêu nhẹ giống tiếng click trên iPhone (Web Audio API)
+   */
+  playIosClickSound(type = 'light') {
+    try {
+      if (!this.audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          this.audioCtx = new AudioContext();
+        }
+      }
+
+      if (!this.audioCtx) return;
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+
+      const now = this.audioCtx.currentTime;
+
+      if (type === 'light') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.008);
+        
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.008);
+        
+        osc.start(now);
+        osc.stop(now + 0.008);
+      } else if (type === 'medium' || type === 'heavy') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.012);
+        
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
+        
+        osc.start(now);
+        osc.stop(now + 0.012);
+      } else if (type === 'success') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.05);
+        
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === 'warning') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.02);
+        
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+        
+        osc.start(now);
+        osc.stop(now + 0.02);
+      }
+    } catch (e) {
+      // Bỏ qua lỗi audio nếu thiết bị không hỗ trợ
+    }
+  }
+
+  /**
+   * Khởi tạo bộ lắng nghe toàn cục cho hiệu ứng Haptic khi bấm nút
+   */
+  initGlobalHapticFeedback() {
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('button, .radio-card, .filter-tab-btn, .cal-day-cell, .page-nav-btn, .cat-item, .amount-sug-chip, .icon-btn');
+      if (!target) return;
+
+      if (target.classList.contains('btn-primary') || target.id === 'btnSubmitTransaction') {
+        this.triggerHaptic('medium');
+      } else if (target.classList.contains('tx-delete-btn')) {
+        this.triggerHaptic('warning');
+      } else {
+        this.triggerHaptic('light');
+      }
+    }, { passive: true });
   }
 }
 

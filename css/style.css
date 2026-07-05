@@ -1528,3 +1528,18 @@ input, select, textarea {
     justify-content: space-between;
   }
 }
+
+/* =========================================================================
+   --- 15. iPHONE / iOS HAPTIC & TACTILE FEEDBACK STYLES ---
+   ========================================================================= */
+button, .radio-card, .filter-tab-btn, .cal-day-cell, .page-nav-btn, .cat-item, .amount-sug-chip, .icon-btn {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+button:active, .radio-card:active, .filter-tab-btn:active, .cal-day-cell:active, .page-nav-btn:active, .cat-item:active, .amount-sug-chip:active, .icon-btn:active {
+  transform: scale(0.94) !important;
+  transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  opacity: 0.9;
+}
