@@ -195,7 +195,64 @@ const CONFIG = {
       note: 'Thưởng dự án hoàn thành tốt',
       createdAt: new Date(Date.now() - 86400000 * 5).toISOString()
     }
-  ]
+  ],
+
+  // Các hàm tiện ích dùng chung trong ứng dụng
+  utils: {
+    /**
+     * Lấy chuỗi ngày YYYY-MM-DD theo múi giờ địa phương
+     * @param {Date} dateObj Đối tượng Date (mặc định là hiện tại)
+     */
+    getLocalDateString(dateObj = new Date()) {
+      const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
+      if (isNaN(d.getTime())) return new Date().toISOString().split('T')[0];
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const date = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${date}`;
+    },
+
+    /**
+     * Lấy chuỗi tháng YYYY-MM theo múi giờ địa phương
+     * @param {Date} dateObj Đối tượng Date (mặc định là hiện tại)
+     */
+    getLocalMonthString(dateObj = new Date()) {
+      const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
+      if (isNaN(d.getTime())) return new Date().toISOString().slice(0, 7);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      return `${year}-${month}`;
+    },
+
+    /**
+     * Chuẩn hóa ngày tháng về dạng YYYY-MM-DD
+     * Hỗ trợ chuẩn hóa định dạng ngày dài trả về từ Apps Script/Google Sheets
+     */
+    normalizeDate(dateVal) {
+      if (!dateVal) return this.getLocalDateString();
+      
+      // Nếu đã đúng định dạng YYYY-MM-DD
+      if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
+        return dateVal;
+      }
+      
+      try {
+        const d = new Date(dateVal);
+        if (!isNaN(d.getTime())) {
+          return this.getLocalDateString(d);
+        }
+      } catch (e) {
+        console.warn("Lỗi chuyển đổi ngày:", dateVal, e);
+      }
+      
+      // Fallback nếu có chữ T (dạng ISO)
+      if (typeof dateVal === 'string' && dateVal.includes('T')) {
+        return dateVal.split('T')[0];
+      }
+      
+      return String(dateVal);
+    }
+  }
 };
 
 // Expose ra global scope cho trình duyệt

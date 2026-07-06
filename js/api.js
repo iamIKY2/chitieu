@@ -133,6 +133,18 @@ class ApiService {
   // --- QUẢN LÝ GIAO DỊCH (TRANSACTIONS) ---
 
   /**
+   * Chuẩn hóa danh sách giao dịch về định dạng sạch sẽ
+   */
+  normalizeTransactionsList(transactions) {
+    if (!Array.isArray(transactions)) return [];
+    return transactions.map(tx => ({
+      ...tx,
+      date: CONFIG.utils.normalizeDate(tx.date),
+      amount: Number(tx.amount) || 0
+    }));
+  }
+
+  /**
    * Lấy danh sách giao dịch từ LocalStorage lập tức, sau đó đồng bộ ngầm từ Google Sheet
    * @param {Function} onSyncSuccess Callback khi đồng bộ Google Sheet về thành công
    */
@@ -140,6 +152,7 @@ class ApiService {
     // 1. Lấy dữ liệu lập tức từ LocalStorage để hiển thị UI ngay (0ms latency)
     const localDataStr = localStorage.getItem(this.keys.TRANSACTIONS);
     let transactions = localDataStr ? JSON.parse(localDataStr) : [];
+    transactions = this.normalizeTransactionsList(transactions);
 
     // Nếu đang ở chế độ Demo, chỉ dùng LocalStorage
     if (this.isDemoMode()) {
@@ -177,7 +190,7 @@ class ApiService {
       });
       const result = await response.json();
       if (result && result.status === 'success' && Array.isArray(result.transactions)) {
-        return result.transactions;
+        return this.normalizeTransactionsList(result.transactions);
       }
       return null;
     } catch (error) {
@@ -196,7 +209,7 @@ class ApiService {
     // 1. Tạo đối tượng hoàn chỉnh
     const newTx = {
       id: tx.id || ('TR_' + Date.now()),
-      date: tx.date || new Date().toISOString().split('T')[0],
+      date: CONFIG.utils.normalizeDate(tx.date) || CONFIG.utils.getLocalDateString(),
       type: tx.type || 'expense',
       category: tx.category || 'other_expense',
       amount: Number(tx.amount) || 0,

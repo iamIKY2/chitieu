@@ -16,7 +16,7 @@ class UiService {
     this.historyViewMode = 'calendar';
     this.calendarMonth = new Date().getMonth();
     this.calendarYear = new Date().getFullYear();
-    this.selectedCalendarDate = new Date().toISOString().split('T')[0];
+    this.selectedCalendarDate = CONFIG.utils.getLocalDateString();
     this.audioCtx = null;
     this.initGlobalHapticFeedback();
   }
@@ -49,17 +49,18 @@ class UiService {
 
   formatDate(dateStr) {
     if (!dateStr) return '';
-    const today = new Date().toISOString().split('T')[0];
-    const yesterdayDate = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const normDate = CONFIG.utils.normalizeDate(dateStr);
+    const today = CONFIG.utils.getLocalDateString();
+    const yesterdayDate = CONFIG.utils.getLocalDateString(new Date(Date.now() - 86400000));
 
-    if (dateStr === today) return 'Hôm nay';
-    if (dateStr === yesterdayDate) return 'Hôm qua';
+    if (normDate === today) return 'Hôm nay';
+    if (normDate === yesterdayDate) return 'Hôm qua';
 
-    const parts = dateStr.split('-');
+    const parts = normDate.split('-');
     if (parts.length === 3) {
       return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
-    return dateStr;
+    return normDate;
   }
 
   showToast(message, type = 'success') {
@@ -134,9 +135,10 @@ class UiService {
     let totalIncome = 0;
     let totalExpense = 0;
 
-    const currentMonth = new Date().toISOString().slice(0, 7);
+    const currentMonth = CONFIG.utils.getLocalMonthString();
     transactions.forEach(tx => {
-      if (tx.date && tx.date.startsWith(currentMonth)) {
+      const txDate = CONFIG.utils.normalizeDate(tx.date);
+      if (txDate && txDate.startsWith(currentMonth)) {
         if (tx.type === 'income') totalIncome += Number(tx.amount);
         else totalExpense += Number(tx.amount);
       }
@@ -548,7 +550,7 @@ class UiService {
     const daysInPrevMonth = new Date(this.calendarYear, this.calendarMonth, 0).getDate();
 
     const allCats = apiService.getCategories();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = CONFIG.utils.getLocalDateString();
 
     gridContainer.innerHTML = '';
 
@@ -628,7 +630,7 @@ class UiService {
     const summaryEl = document.getElementById('selectedDaySummary');
     if (!listContainer) return;
 
-    const [y, m, d] = (dateStr || new Date().toISOString().split('T')[0]).split('-');
+    const [y, m, d] = (dateStr || CONFIG.utils.getLocalDateString()).split('-');
     const dateObj = new Date(y, m - 1, d);
     const weekdays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
     const dayName = weekdays[dateObj.getDay()];

@@ -219,7 +219,7 @@ class AppController {
 
         uiService.closeModal('addTransactionModal');
         document.getElementById('transactionForm').reset();
-        document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('txDate').value = CONFIG.utils.getLocalDateString();
 
         uiService.showToast('🎉 Đã thêm khoản ' + (newTx.type === 'income' ? 'thu nhập' : 'chi tiêu') + ' mới!', 'success');
         
@@ -439,7 +439,7 @@ class AppController {
       const now = new Date();
       uiService.calendarMonth = now.getMonth();
       uiService.calendarYear = now.getFullYear();
-      uiService.selectedCalendarDate = now.toISOString().split('T')[0];
+      uiService.selectedCalendarDate = CONFIG.utils.getLocalDateString(now);
       this.updateHistoryView();
     });
 
@@ -453,18 +453,18 @@ class AppController {
     });
 
     document.getElementById('btnAddForSelectedDay')?.addEventListener('click', () => {
-      document.getElementById('txDate').value = uiService.selectedCalendarDate || new Date().toISOString().split('T')[0];
+      document.getElementById('txDate').value = uiService.selectedCalendarDate || CONFIG.utils.getLocalDateString();
       uiService.renderAmountSuggestions('', (val) => this.handleSelectSuggestedAmount(val));
       uiService.openModal('addTransactionModal');
     });
     document.getElementById('btnOpenAddModalFromHistory')?.addEventListener('click', () => {
-      document.getElementById('txDate').value = uiService.selectedCalendarDate || new Date().toISOString().split('T')[0];
+      document.getElementById('txDate').value = uiService.selectedCalendarDate || CONFIG.utils.getLocalDateString();
       uiService.renderAmountSuggestions('', (val) => this.handleSelectSuggestedAmount(val));
       uiService.openModal('addTransactionModal');
     });
 
     document.getElementById('btnOpenAddModal')?.addEventListener('click', () => {
-      document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('txDate').value = CONFIG.utils.getLocalDateString();
       uiService.renderAmountSuggestions('', (val) => this.handleSelectSuggestedAmount(val));
       uiService.openModal('addTransactionModal');
     });
