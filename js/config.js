@@ -236,8 +236,39 @@ const CONFIG = {
         return dateVal;
       }
       
+      let cleanDateVal = dateVal;
+      if (typeof dateVal === 'string') {
+        // Loại bỏ phần tên múi giờ trong ngoặc ở cuối (ví dụ: " (Indochina Time)" hoặc " (ICT)")
+        cleanDateVal = dateVal.replace(/\s*\([^)]+\)$/, '');
+      }
+
+      // Bản đồ chuyển đổi tháng tiếng Anh sang số
+      const monthMap = {
+        Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+        Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
+      };
+
+      // 1. Phân tích chuỗi ngày định dạng của Google Apps Script (ví dụ: "Mon Jul 06 2026 00:00:00 GM...")
+      if (typeof cleanDateVal === 'string') {
+        const match = cleanDateVal.match(/^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})/);
+        if (match) {
+          const monthStr = monthMap[match[1]];
+          const dayStr = match[2].padStart(2, '0');
+          const yearStr = match[3];
+          if (monthStr) {
+            return `${yearStr}-${monthStr}-${dayStr}`;
+          }
+        }
+      }
+
+      // 2. Fallback dùng hàm Date tiêu chuẩn của JS
       try {
-        const d = new Date(dateVal);
+        // Hỗ trợ cụt đuôi do split('T') ở Apps Script cũ (ví dụ: "... 00:00:00 GM" thành "... 00:00:00 GMT")
+        let parseTarget = cleanDateVal;
+        if (typeof parseTarget === 'string' && parseTarget.endsWith(' GM')) {
+          parseTarget = parseTarget + 'T';
+        }
+        const d = new Date(parseTarget);
         if (!isNaN(d.getTime())) {
           return this.getLocalDateString(d);
         }

@@ -134,17 +134,29 @@ class UiService {
   updateOverviewCards(transactions, budget) {
     let totalIncome = 0;
     let totalExpense = 0;
+    let allTimeIncome = 0;
+    let allTimeExpense = 0;
 
     const currentMonth = CONFIG.utils.getLocalMonthString();
     transactions.forEach(tx => {
       const txDate = CONFIG.utils.normalizeDate(tx.date);
+      const amount = Number(tx.amount) || 0;
+
+      // Cộng dồn tích lũy trọn đời cho Tổng số dư
+      if (tx.type === 'income') {
+        allTimeIncome += amount;
+      } else {
+        allTimeExpense += amount;
+      }
+
+      // Cộng dồn riêng cho tháng hiện tại
       if (txDate && txDate.startsWith(currentMonth)) {
-        if (tx.type === 'income') totalIncome += Number(tx.amount);
-        else totalExpense += Number(tx.amount);
+        if (tx.type === 'income') totalIncome += amount;
+        else totalExpense += amount;
       }
     });
 
-    const balance = totalIncome - totalExpense;
+    const balance = allTimeIncome - allTimeExpense;
 
     const balanceEl = document.getElementById('statBalance');
     const incomeEl = document.getElementById('statIncome');
