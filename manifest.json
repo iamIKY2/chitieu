@@ -1,0 +1,19 @@
+{
+  "name": "Quản lý chi tiêu cá nhân",
+  "short_name": "SpendMgr",
+  "description": "Ứng dụng quản lý chi tiêu cá nhân trực quan, kết nối Google Sheets API và hỗ trợ chạy offline.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B0F19",
+  "theme_color": "#0B0F19",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}

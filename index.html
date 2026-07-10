@@ -2,10 +2,17 @@
 <html lang="vi" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Quản lý chi tiêu</title>
   <meta name="description" content="Ứng dụng web quản lý chi tiêu cá nhân với giao diện hiện đại, chuyển động mượt mà và kết nối trực tiếp Google Sheets API.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
+  
+  <!-- PWA & Mobile App Settings -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SpendMgr">
+  <link rel="apple-touch-icon" href="icon.svg">
   
   <!-- Custom Styles -->
   <link rel="stylesheet" href="css/style.css">
@@ -26,7 +33,7 @@
       <div class="brand-logo">
         
         <div>
-          <h1 class="brand-title">Chi Tiêu Cá Nhân</h1>
+          <h1 class="brand-title">Chi Tiêu Quậy phá</h1>
           <div class="user-greeting">Xin chào, <span id="userGreetingName">Bạn</span>! ✨</div>
         </div>
       </div>
@@ -37,6 +44,11 @@
           <span class="status-dot"></span>
           <span class="status-text">Đang tải...</span>
         </div>
+
+        <!-- Nút sang trang Demo -->
+        <a href="demo.html" class="icon-btn" title="Trải nghiệm bản Demo (Dữ liệu mẫu)">
+          <i data-lucide="sparkles"></i>
+        </a>
 
         <!-- Nút Quản lý danh mục -->
         <button id="btnOpenCategoryModal" class="icon-btn" title="Quản lý & tùy chỉnh danh mục thu/chi">
@@ -434,14 +446,6 @@
             </button>
           </div>
 
-          <div class="form-group" style="margin-top: 1.5rem; padding: 1rem; background: rgba(148, 163, 184, 0.05); border-radius: var(--radius-md); border: 1px solid var(--glass-border);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-              <span style="font-weight: 600; font-size: 0.95rem;">Chế độ Demo Mode</span>
-              <input type="checkbox" id="settingDemoMode" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
-            </div>
-            <p style="font-size: 0.8rem; color: var(--text-muted);">Bật để sử dụng dữ liệu mẫu offline test hiệu ứng. Tắt để kết nối đồng bộ trực tiếp với Google Sheets API.</p>
-          </div>
-
           <div class="form-group" style="margin-top: 1rem;">
             <button type="button" id="btnTestConnection" class="form-control" style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.1); color: var(--primary-color); border-color: rgba(99, 102, 241, 0.3); font-weight: 600;">
               <i data-lucide="wifi"></i> Kiểm tra kết nối Google Sheet
@@ -507,5 +511,16 @@
   <script src="js/charts.js?v=1.0.4"></script>
   <script src="js/ui.js?v=1.0.4"></script>
   <script src="js/app.js?v=1.0.4"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('[PWA] Service Worker registered with scope:', reg.scope))
+          .catch((err) => console.error('[PWA] Service Worker registration failed:', err));
+      });
+    }
+  </script>
 </body>
 </html>

@@ -117,10 +117,36 @@ class AppController {
 
   async loadData() {
     try {
+      const isDemo = apiService.isDemoMode();
+
+      // 1. Đồng bộ danh mục từ Google Sheet TRƯỚC (chỉ khi không phải Demo)
+      if (!isDemo) {
+        try {
+          console.log('⏳ Đang đồng bộ danh mục từ Google Sheet...');
+          await apiService.syncCategories();
+          console.log('✅ Hoàn tất đồng bộ danh mục.');
+        } catch (catErr) {
+          console.warn('⚠️ Lỗi đồng bộ danh mục:', catErr);
+        }
+      }
+
+      // Đảm bảo cập nhật danh mục vào select trước khi load dữ liệu và vẽ dashboard
+      this.populateCategorySelects();
+
+      // 2. Tải giao dịch từ Local Cache và bắt đầu đồng bộ ngầm
       const { transactions, status } = await apiService.getTransactions((remoteTx) => {
         console.log('🔄 Đã đồng bộ dữ liệu mới từ Google Sheet:', remoteTx.length, 'giao dịch');
         this.transactions = remoteTx;
-        this.updateDashboard();
+        
+        // Đồng bộ lại danh mục nếu có cập nhật mới ngầm
+        if (!isDemo) {
+          apiService.syncCategories().then(() => {
+            this.populateCategorySelects();
+            this.updateDashboard();
+          });
+        } else {
+          this.updateDashboard();
+        }
         uiService.showToast('Đã cập nhật dữ liệu mới nhất từ Google Sheets', 'info');
       });
 
@@ -540,17 +566,20 @@ class AppController {
       e.preventDefault();
       const newName = document.getElementById('settingUserName').value.trim() || 'Bạn';
       const newBudget = Number(document.getElementById('settingBudget').value) || CONFIG.DEFAULT_BUDGET;
-      const isDemo = document.getElementById('settingDemoMode').checked;
+            const demoToggle = document.getElementById('settingDemoMode');
+      const isDemo = demoToggle ? demoToggle.checked : apiService.isDemoMode();
 
       const oldDemo = apiService.isDemoMode();
 
       apiService.setUserName(newName);
       apiService.setBudget(newBudget);
-      apiService.setDemoMode(isDemo);
+      if (demoToggle) {
+        apiService.setDemoMode(isDemo);
+      }
 
       this.initSettingsUI();
       
-      if (oldDemo !== isDemo) {
+      if (demoToggle && oldDemo !== isDemo) {
         this.loadData();
       } else {
         this.updateDashboard();

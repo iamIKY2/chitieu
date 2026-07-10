@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Quản lý chi tiêu</title>
+  <meta name="description" content="Ứng dụng web quản lý chi tiêu cá nhân với giao diện hiện đại, chuyển động mượt mà và kết nối trực tiếp Google Sheets API.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
+  
+  <!-- PWA & Mobile App Settings -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SpendMgr">
+  <link class="apple-touch-icon" rel="apple-touch-icon" href="icon.svg">
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/demo-mobile.css">
+  
+  <!-- External Libraries (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <!-- Đánh dấu trang chính thức kết nối API -->
+  <script>
+    window.IS_DEMO_PAGE = false;
+  </script>
+</head>
+<body>
+  <!-- Background Glowing Orbs -->
+  <div class="bg-orb-1"></div>
+  <div class="bg-orb-2"></div>
+
+  <!-- Khung điện thoại mô phỏng di động -->
+  <div class="phone-container">
+    <div class="phone-screen">
+
+      <!-- Header / Navbar -->
+      <header class="app-header">
+        <div class="header-container">
+          <div class="brand-logo">
+            <div>
+              <h1 class="brand-title">Chi Tiêu báo tiền</h1>
+              <div class="user-greeting">Xin chào, <span id="userGreetingName">Bạn</span>! ✨</div>
+            </div>
+          </div>
+
+          <div class="header-actions">
+            <!-- Trạng thái kết nối Google Sheet -->
+            <div id="connectionStatusBadge" class="connection-badge badge-online" title="Trạng thái kết nối Google Sheet">
+              <span class="status-dot"></span>
+              <span class="status-text">Đang tải...</span>
+            </div>
+
+            <!-- Nút sang trang Demo di động -->
+            <a href="demo.html" class="icon-btn" title="Trải nghiệm bản Demo (Dữ liệu mẫu)" style="color: var(--warning-color); border-color: rgba(245, 158, 11, 0.3);">
+              <i data-lucide="sparkles"></i>
+            </a>
+
+            <!-- Nút Hướng dẫn kết nối Google Sheet -->
+            <button id="btnOpenHelpModal" class="icon-btn" title="Hướng dẫn Google Sheet & API">
+              <i data-lucide="help-circle"></i>
+            </button>
+
+            <!-- Nút Quản lý danh mục -->
+            <button id="btnOpenCategoryModal" class="icon-btn" title="Quản lý & tùy chỉnh danh mục thu/chi">
+              <i data-lucide="tags"></i>
+            </button>
+
+            <!-- Nút Cài đặt -->
+            <button id="btnOpenSettingsModal" class="icon-btn" title="Cài đặt ngân sách & tên">
+              <i data-lucide="settings"></i>
+            </button>
+
+            <!-- Nút Đổi Theme -->
+            <button id="themeToggleBtn" class="icon-btn" title="Chuyển đổi giao diện Sáng / Tối">
+              <i data-lucide="sun"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Container -->
+      <main class="main-container">
+
+        <!-- ================= PAGE 1: DASHBOARD VIEW ================= -->
+        <div id="dashboardPageView" class="page-view animate-fade-in">
+          <!-- 1. Hero Section: Overview Stats Cards -->
+          <section class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">TỔNG SỐ DƯ</span>
+                <div class="stat-icon-box stat-icon-balance"><i data-lucide="wallet"></i></div>
+              </div>
+              <div id="statBalance" class="stat-value text-success" data-val="0">0 ₫</div>
+              <div class="stat-desc">Số dư thực tế tích lũy</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">THU NHẬP THÁNG</span>
+                <div class="stat-icon-box stat-icon-income"><i data-lucide="arrow-down-left"></i></div>
+              </div>
+              <div id="statIncome" class="stat-value text-success" data-val="0">0 ₫</div>
+              <div class="stat-desc">Tổng các khoản thu tháng này</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">CHI TIÊU THÁNG</span>
+                <div class="stat-icon-box stat-icon-expense"><i data-lucide="arrow-up-right"></i></div>
+              </div>
+              <div id="statExpense" class="stat-value text-danger" data-val="0">0 ₫</div>
+              <div class="stat-desc">Tổng chi tiêu đã thực hiện</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">NGÂN SÁCH THÁNG</span>
+                <div class="stat-icon-box stat-icon-budget"><i data-lucide="pie-chart"></i></div>
+              </div>
+              <div class="budget-meta">
+                <span>Tiến độ chi tiêu:</span>
+                <span id="budgetPercent" class="text-warning">0%</span>
+              </div>
+              <div class="progress-bar-container">
+                <div id="budgetProgressBar" class="progress-bar-fill bg-success" style="width: 0%"></div>
+              </div>
+              <div id="budgetRemain" class="stat-desc">Còn lại: 10.000.000 ₫</div>
+            </div>
+          </section>
+
+          <!-- 2. Analytics Section: Charts -->
+          <section class="charts-grid">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h2 class="chart-title"><i data-lucide="donut"></i> Cơ Cấu Theo Danh Mục</h2>
+                <div class="chart-toggle-group">
+                  <button class="chart-toggle-btn active" data-type="expense">Chi tiêu</button>
+                  <button class="chart-toggle-btn" data-type="income">Thu nhập</button>
+                </div>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="categoryChartCanvas"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <h2 class="chart-title"><i data-lucide="trending-up"></i> Xu hướng thu chi 7 ngày qua</h2>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="trendChartCanvas"></canvas>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. Transactions Section -->
+          <section class="tx-section">
+            <div class="tx-header-bar">
+              <h2 class="tx-section-title"><i data-lucide="list-ordered"></i> Lịch Sử Giao Dịch</h2>
+              
+              <div class="tx-controls">
+                <div class="filter-tabs">
+                  <button class="filter-tab-btn active" data-tab="all">Tất cả</button>
+                  <button class="filter-tab-btn" data-tab="expense">Chi tiêu</button>
+                  <button class="filter-tab-btn" data-tab="income">Thu nhập</button>
+                </div>
+
+                <select id="categoryFilterSelect" class="filter-select">
+                  <option value="all">Tất cả danh mục</option>
+                </select>
+
+                <div class="search-input-wrapper">
+                  <i data-lucide="search"></i>
+                  <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm ghi chú, số tiền...">
+                </div>
+
+                <button id="btnOpenAddModal" class="btn-primary">
+                  <i data-lucide="plus"></i> Thêm Giao Dịch
+                </button>
+              </div>
+            </div>
+
+            <div id="transactionListContainer" class="tx-list"></div>
+
+            <div id="emptyStateContainer" class="empty-state">
+              <div class="empty-icon"><i data-lucide="inbox"></i></div>
+              <div class="empty-title">Chưa có giao dịch nào</div>
+              <div class="empty-desc">Hãy bấm nút "Thêm Giao Dịch" để bắt đầu ghi chép chi tiêu của bạn!</div>
+            </div>
+          </section>
+        </div> <!-- End Dashboard Page View -->
+
+        <!-- ================= PAGE 2: HISTORY & CALENDAR VIEW ================= -->
+        <div id="historyPageView" class="page-view animate-fade-in" style="display: none;">
+          <!-- Calendar Header Controls -->
+          <section class="calendar-header-card">
+            <div class="cal-header-left">
+              <div class="cal-month-nav">
+                <button id="btnPrevMonth" class="icon-btn-sm" title="Tháng trước"><i data-lucide="chevron-left"></i></button>
+                <h2 id="calendarMonthTitle" class="cal-month-title">Tháng 7, 2026</h2>
+                <button id="btnNextMonth" class="icon-btn-sm" title="Tháng sau"><i data-lucide="chevron-right"></i></button>
+                <button id="btnTodayMonth" class="btn-secondary btn-xs">Hôm nay</button>
+              </div>
+            </div>
+
+            <div class="cal-header-right">
+              <div class="cal-month-summary">
+                <div class="cal-sum-item">
+                  <span class="cal-sum-label">Thu:</span>
+                  <span id="calMonthIncome" class="text-success">+0 ₫</span>
+                </div>
+                <div class="cal-sum-item">
+                  <span class="cal-sum-label">Chi:</span>
+                  <span id="calMonthExpense" class="text-danger">-0 ₫</span>
+                </div>
+                <div class="cal-sum-item cal-sum-total">
+                  <span class="cal-sum-label">Dư:</span>
+                  <span id="calMonthBalance" class="text-primary">0 ₫</span>
+                </div>
+              </div>
+
+              <div class="cal-view-toggle">
+                <button class="cal-toggle-btn active" data-view="calendar" title="Xem dạng Lịch"><i data-lucide="calendar"></i> Lịch</button>
+                <button class="cal-toggle-btn" data-view="timeline" title="Xem dạng Dòng thời gian"><i data-lucide="list"></i> Dòng thời gian</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Calendar Grid View -->
+          <section id="calendarGridViewSection" class="calendar-grid-section">
+            <div class="calendar-weekdays">
+              <div>Thứ 2</div>
+              <div>Thứ 3</div>
+              <div>Thứ 4</div>
+              <div>Thứ 5</div>
+              <div>Thứ 6</div>
+              <div>Thứ 7</div>
+              <div class="text-danger">Chủ Nhật</div>
+            </div>
+            <div id="calendarDaysGrid" class="calendar-days-grid"></div>
+          </section>
+
+          <!-- Timeline List View (Hidden by default) -->
+          <section id="timelineListViewSection" class="timeline-list-section" style="display: none;">
+            <div id="timelineListContainer" class="timeline-container"></div>
+          </section>
+
+          <!-- Selected Day Details Panel -->
+          <section id="selectedDayPanel" class="selected-day-card">
+            <div class="day-panel-header">
+              <div class="day-panel-title-group">
+                <h3 id="selectedDayTitle" class="day-panel-title">Chi tiết ngày...</h3>
+                <span id="selectedDaySummary" class="day-panel-badge">0 giao dịch</span>
+              </div>
+            </div>
+            <div id="selectedDayTxList" class="day-tx-list"></div>
+          </section>
+        </div> <!-- End History Page View -->
+      </main>
+
+      <!-- ================= BOTTOM DOCK & FAB BUTTON ================= -->
+      <div class="bottom-dock-wrapper">
+        <!-- Dock chứa tab chuyển trang -->
+        <div class="bottom-dock">
+          <div class="page-nav-tabs">
+            <button class="page-nav-btn active" data-page="dashboard">
+              <i data-lucide="layout-dashboard"></i> Tổng Quan
+            </button>
+            <button class="page-nav-btn" data-page="history">
+              <i data-lucide="calendar"></i> Lịch Sử
+            </button>
+          </div>
+        </div>
+
+        <!-- Cụm FAB nổi + Menu Speed Dial -->
+        <div class="fab-container" id="fabContainer">
+          <!-- Menu bay lên -->
+          <div class="fab-menu" id="fabMenu">
+            <button class="fab-menu-item expense" id="fabAddExpense" title="Thêm Chi Tiêu">
+              <i data-lucide="arrow-up-right"></i>
+              <span>Chi Tiêu</span>
+            </button>
+            <button class="fab-menu-item income" id="fabAddIncome" title="Thêm Thu Nhập">
+              <i data-lucide="arrow-down-left"></i>
+              <span>Thu Nhập</span>
+            </button>
+          </div>
+          <!-- Nút tròn chính (+) -->
+          <button class="fab-main-btn" id="fabMainBtn" title="Thêm giao dịch mới">
+            <i data-lucide="plus"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= MODALS ================= -->
+
+      <!-- 1. Modal Thêm Giao Dịch -->
+      <div id="addTransactionModal" class="modal-overlay">
+        <div class="modal-box">
+          <div class="modal-header">
+            <h3 class="modal-title"><i data-lucide="plus-circle"></i> Thêm Giao Dịch Mới</h3>
+            <button class="modal-close"><i data-lucide="x"></i></button>
+          </div>
+          
+          <form id="transactionForm">
+            <div class="modal-body">
+              <div class="form-group">
+                <label class="form-label">Loại giao dịch</label>
+                <div class="form-radio-group">
+                  <label class="radio-card">
+                    <input type="radio" name="type" value="expense" checked>
+                    <span class="radio-label radio-label-expense">
+                      <i data-lucide="arrow-up-right"></i> Chi Tiêu
+                    </span>
+                  </label>
+                  <label class="radio-card">
+                    <input type="radio" name="type" value="income">
+                    <span class="radio-label radio-label-income">
+                      <i data-lucide="arrow-down-left"></i> Thu Nhập
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="txDate">Ngày giao dịch</label>
+                <input type="date" id="txDate" name="date" class="form-control" required>
+              </div>
+
+              <div class="form-group">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                  <label class="form-label" for="txCategory" style="margin-bottom: 0;">Danh mục</label>
+                  <button type="button" id="btnOpenCategoryFromAdd" style="font-size: 0.8rem; color: var(--primary-color); font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+                    <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> Thêm / chỉnh sửa
+                  </button>
+                </div>
+                <!-- Select gốc ẩn đi để giữ nguyên logic form submit -->
+                <select id="txCategory" name="category" style="display: none;" required></select>
+                <!-- trigger chọn danh mục giả lập đẹp mắt -->
+                <div class="custom-select-trigger" id="txCategoryTrigger">
+                  <div class="selected-cat-info" id="selectedCatInfoBox">
+                    <i data-lucide="tag" style="background-color: rgba(99, 102, 241, 0.15); color: var(--primary-color);"></i>
+                    <span>Chọn danh mục...</span>
+                  </div>
+                  <i data-lucide="chevron-down"></i>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="txAmount">Số tiền (VND)</label>
+                <input type="number" id="txAmount" name="amount" class="form-control" placeholder="Ví dụ: 50000" min="1000" step="1000" required autocomplete="off">
+                <!-- Gợi ý số tiền thông minh -->
+                <div id="amountSuggestions" class="amount-suggestions-container"></div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="txNote">Ghi chú chi tiết</label>
+                <input type="text" id="txNote" name="note" class="form-control" placeholder="Ví dụ: Ăn trưa với đồng nghiệp...">
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn-cancel">Hủy bỏ</button>
+              <button type="submit" id="btnSubmitTransaction" class="btn-primary">
+                <i data-lucide="check"></i> Lưu Giao Dịch
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- 2. Modal Quản Lý Danh Mục (Categories) -->
+      <div id="categoryModal" class="modal-overlay">
+        <div class="modal-box">
+          <div class="modal-header">
+            <h3 class="modal-title" id="categoryFormTitle"><i data-lucide="tags"></i> Quản Lý Danh Mục</h3>
+            <button class="modal-close"><i data-lucide="x"></i></button>
+          </div>
+
+          <!-- VIEW 1: Danh sách danh mục -->
+          <div id="categoryListView">
+            <div style="padding: 1rem 1.5rem 0 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+              <div class="filter-tabs" style="width: 100%; display: flex;">
+                <button type="button" class="cat-tab-btn filter-tab-btn active" data-tab="expense" style="flex: 1; text-align: center;">Chi tiêu</button>
+                <button type="button" class="cat-tab-btn filter-tab-btn" data-tab="income" style="flex: 1; text-align: center;">Thu nhập</button>
+              </div>
+            </div>
+
+            <div class="modal-body" style="padding: 1rem 1.5rem; max-height: 50vh; overflow-y: auto;">
+              <div id="categoryListContainer" class="cat-list-wrapper"></div>
+            </div>
+
+            <div class="modal-footer" style="justify-content: space-between;">
+              <button type="button" id="btnResetCategories" class="btn-cancel" style="color: var(--danger-color); font-size: 0.85rem;" title="Khôi phục gốc">
+                <i data-lucide="refresh-cw"></i> Reset gốc
+              </button>
+              <button type="button" id="btnShowAddCategoryForm" class="btn-primary">
+                <i data-lucide="plus"></i> Tạo mới
+              </button>
+            </div>
+          </div>
+
+          <!-- VIEW 2: Form thêm/sửa danh mục -->
+          <div id="categoryFormView" style="display: none;">
+            <form id="categoryForm">
+              <div class="modal-body" style="padding: 1.5rem; max-height: 55vh; overflow-y: auto;">
+                <div class="form-group">
+                  <label class="form-label">Loại</label>
+                  <div class="form-radio-group">
+                    <label class="radio-card">
+                      <input type="radio" id="catTypeExpense" name="type" value="expense" checked>
+                      <span class="radio-label radio-label-expense">Chi Tiêu</span>
+                    </label>
+                    <label class="radio-card">
+                      <input type="radio" id="catTypeIncome" name="type" value="income">
+                      <span class="radio-label radio-label-income">Thu Nhập</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Tên danh mục</label>
+                  <input type="text" id="catNameInput" name="name" class="form-control" placeholder="Ví dụ: Cà phê, Du lịch, Nuôi thú cưng..." required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Biểu tượng (Icon)</label>
+                  <div id="iconPickerGrid" class="icon-picker-grid"></div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Màu sắc chủ đạo</label>
+                  <div id="colorPickerGrid" class="color-picker-grid"></div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Hoặc chọn màu tùy ý:</span>
+                    <input type="color" id="catColorInput" value="#6366F1" style="width: 36px; height: 28px; border: none; border-radius: 4px; cursor: pointer; background: transparent;">
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-footer">
+                <button type="button" id="btnBackToCatList" class="btn-cancel">Quay lại</button>
+                <button type="submit" class="btn-primary">
+                  <i data-lucide="check"></i> Lưu Danh Mục
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Modal Cài Đặt (Settings) -->
+      <div id="settingsModal" class="modal-overlay">
+        <div class="modal-box">
+          <div class="modal-header">
+            <h3 class="modal-title"><i data-lucide="settings"></i> Cài Đặt Cá Nhân</h3>
+            <button class="modal-close"><i data-lucide="x"></i></button>
+          </div>
+          
+          <form id="settingsForm">
+            <div class="modal-body">
+              <div class="form-group">
+                <label class="form-label" for="settingUserName">Tên hiển thị của bạn</label>
+                <input type="text" id="settingUserName" class="form-control" placeholder="Ví dụ: Duy">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="settingBudget">Ngân sách chi tiêu tháng (VND)</label>
+                <input type="number" id="settingBudget" class="form-control" placeholder="Ví dụ: 10000000" min="0" step="500000">
+              </div>
+
+              <div class="form-group" style="margin-top: 1rem;">
+                <button type="button" id="btnOpenCategoryFromSettings" class="form-control" style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(56, 189, 248, 0.1); color: var(--accent-color); border-color: rgba(56, 189, 248, 0.3); font-weight: 600;">
+                  <i data-lucide="tags"></i> Quản lý & Tùy chỉnh danh mục thu/chi
+                </button>
+              </div>
+
+              <div class="form-group" style="margin-top: 1rem;">
+                <button type="button" id="btnTestConnection" class="form-control" style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.1); color: var(--primary-color); border-color: rgba(99, 102, 241, 0.3); font-weight: 600;">
+                  <i data-lucide="wifi"></i> Kiểm tra kết nối Google Sheet
+                </button>
+              </div>
+
+              <div class="form-group" style="margin-top: 1rem;">
+                <a href="index.html" class="form-control btn-secondary" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid var(--glass-border); font-weight: 600; padding: 0.6rem; border-radius: var(--radius-md); text-align: center; box-sizing: border-box;">
+                  <i data-lucide="monitor"></i> Xem Bản Máy Tính (Desktop)
+                </a>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn-cancel">Đóng</button>
+              <button type="submit" class="btn-primary">
+                <i data-lucide="save"></i> Lưu Cấu Hình
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- 4. Modal Hướng Dẫn Google Sheet (Help) -->
+      <div id="helpModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 650px;">
+          <div class="modal-header">
+            <h3 class="modal-title"><i data-lucide="help-circle"></i> Hướng Dẫn Kết Nối Google Sheets API</h3>
+            <button class="modal-close"><i data-lucide="x"></i></button>
+          </div>
+          
+          <div class="modal-body" style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7; max-height: 60vh; overflow-y: auto;">
+            <p style="margin-bottom: 1rem; color: var(--text-primary);">Website của bạn đã được cấu hình sẵn để kết nối với Google Script API của bạn:</p>
+            <code style="display: block; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); font-size: 0.8rem; word-break: break-all; color: var(--accent-color); margin-bottom: 1.25rem;">https://script.google.com/macros/s/AKfycbyBGqCbPZS0QDCTNkAobtC1VNkytqCccZJB984sjPfSAM_ONbCivjw8-P4dLCha0gFm/exec</code>
+
+            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">1. Cấu trúc các cột trên Google Sheet:</h4>
+            <p style="margin-bottom: 1rem;">Tại trang tính đầu tiên (Sheet1 hoặc Transactions), hãy đặt tiêu đề hàng 1 theo thứ tự:</p>
+            <ul style="margin-left: 1.5rem; margin-bottom: 1.25rem;">
+              <li><b>Cột A:</b> <code>id</code> (Mã giao dịch)</li>
+              <li><b>Cột B:</b> <code>date</code> (Ngày giao dịch - YYYY-MM-DD)</li>
+              <li><b>Cột C:</b> <code>type</code> (<code>income</code> hoặc <code>expense</code>)</li>
+              <li><b>Cột D:</b> <code>category</code> (Mã danh mục: <code>food</code>, <code>shopping</code>...)</li>
+              <li><b>Cột E:</b> <code>amount</code> (Số tiền VND)</li>
+              <li><b>Cột F:</b> <code>note</code> (Ghi chú)</li>
+              <li><b>Cột G:</b> <code>createdAt</code> (Thời gian tạo)</li>
+            </ul>
+
+            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">2. Cài đặt quyền truy cập Apps Script:</h4>
+            <p style="margin-bottom: 0.5rem;">Khi triển khai (Deploy) Web App trên Google Apps Script, hãy đảm bảo:</p>
+            <ul style="margin-left: 1.5rem;">
+              <li><b>Execute as:</b> Me (Tôi)</li>
+              <li><b>Who has access:</b> <b style="color: var(--warning-color);">Anyone (Bất kỳ ai)</b> <i>(Để trình duyệt không bị chặn bởi trang đăng nhập Google)</i></li>
+            </ul>
+            <p style="margin-top: 1rem; font-size: 0.85rem; font-style: italic;">👉 Xem toàn bộ mã nguồn Apps Script chuẩn trong file <code>GOOGLE_SHEET_GUIDE.md</code> trong thư mục dự án.</p>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" style="background: var(--primary-gradient); color: #fff;">Đã Hiểu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Bottom Sheet Chọn Danh Mục (iOS Style) -->
+      <div id="categoryBottomSheet" class="bottom-sheet-overlay">
+        <div class="bottom-sheet-box">
+          <div class="bottom-sheet-handle"></div>
+          <div class="bottom-sheet-header">
+            <h3 class="bottom-sheet-title">Chọn danh mục</h3>
+          </div>
+          <div class="bottom-sheet-body">
+            <div class="category-grid-mobile" id="bottomSheetCategoryGrid">
+              <!-- Grid danh mục được chèn động bằng JS -->
+            </div>
+          </div>
+          <div class="bottom-sheet-footer">
+            <button type="button" class="btn-cancel" id="btnCancelBottomSheet">Hủy</button>
+            <button type="button" class="btn-primary" id="btnConfirmBottomSheet">Chọn</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast Container -->
+      <div id="toastContainer" class="toast-container"></div>
+
+    </div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="js/config.js?v=1.0.4"></script>
+  <script src="js/api.js?v=1.0.4"></script>
+  <script src="js/charts.js?v=1.0.4"></script>
+  <script src="js/ui.js?v=1.0.4"></script>
+  <script src="js/app.js?v=1.0.4"></script>
+
+  <!-- Floating Action Button Controls -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const fabContainer = document.getElementById('fabContainer');
+      const fabMainBtn = document.getElementById('fabMainBtn');
+      const fabAddExpense = document.getElementById('fabAddExpense');
+      const fabAddIncome = document.getElementById('fabAddIncome');
+
+      // Đóng mở menu FAB
+      fabMainBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fabContainer?.classList.toggle('active');
+        if (window.uiService) {
+          window.uiService.triggerHaptic('light');
+        }
+      });
+
+      // Đóng menu khi click ra ngoài
+      document.addEventListener('click', () => {
+        fabContainer?.classList.remove('active');
+      });
+
+      // Xử lý mở modal Thêm Chi Tiêu
+      fabAddExpense?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fabContainer?.classList.remove('active');
+
+        // Reset ngày về hôm nay
+        const dateInput = document.getElementById('txDate');
+        if (dateInput) {
+          dateInput.value = window.CONFIG?.utils?.getLocalDateString() || new Date().toISOString().split('T')[0];
+        }
+
+        // Chọn radio Chi tiêu
+        const radioExpense = document.querySelector('input[name="type"][value="expense"]');
+        if (radioExpense) {
+          radioExpense.checked = true;
+          radioExpense.dispatchEvent(new Event('change'));
+        }
+
+        if (window.uiService) {
+          window.uiService.renderAmountSuggestions('', (val) => window.app?.handleSelectSuggestedAmount(val));
+          window.uiService.openModal('addTransactionModal');
+          window.uiService.triggerHaptic('medium');
+        }
+      });
+
+      // Xử lý mở modal Thêm Thu Nhập
+      fabAddIncome?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fabContainer?.classList.remove('active');
+
+        // Reset ngày về hôm nay
+        const dateInput = document.getElementById('txDate');
+        if (dateInput) {
+          dateInput.value = window.CONFIG?.utils?.getLocalDateString() || new Date().toISOString().split('T')[0];
+        }
+
+        // Chọn radio Thu nhập
+        const radioIncome = document.querySelector('input[name="type"][value="income"]');
+        if (radioIncome) {
+          radioIncome.checked = true;
+          radioIncome.dispatchEvent(new Event('change'));
+        }
+
+        if (window.uiService) {
+          window.uiService.renderAmountSuggestions('', (val) => window.app?.handleSelectSuggestedAmount(val));
+          window.uiService.openModal('addTransactionModal');
+          window.uiService.triggerHaptic('medium');
+        }
+      });
+
+      // --- Bottom Sheet Chọn Danh Mục Logic ---
+      const txCategory = document.getElementById('txCategory');
+      const selectedCatInfoBox = document.getElementById('selectedCatInfoBox');
+      const categoryBottomSheet = document.getElementById('categoryBottomSheet');
+      const txCategoryTrigger = document.getElementById('txCategoryTrigger');
+      const bottomSheetCategoryGrid = document.getElementById('bottomSheetCategoryGrid');
+      const btnCancelBottomSheet = document.getElementById('btnCancelBottomSheet');
+      const btnConfirmBottomSheet = document.getElementById('btnConfirmBottomSheet');
+      let selectedCategoryInSheet = null;
+
+      // Hàm cập nhật nhãn trigger hiển thị bên ngoài
+      function updateTriggerDisplay() {
+        if (!txCategory || !selectedCatInfoBox) return;
+        const selectedId = txCategory.value;
+        const allCats = window.apiService?.getCategories() || {};
+        const cat = allCats[selectedId] || { name: 'Chọn danh mục...', icon: 'tag', color: '#6366F1', bgColor: 'rgba(99, 102, 241, 0.15)' };
+
+        selectedCatInfoBox.innerHTML = `
+          <i data-lucide="${cat.icon || 'tag'}" style="background-color: ${cat.bgColor || 'rgba(99, 102, 241, 0.15)'}; color: ${cat.color || 'var(--primary-color)'};"></i>
+          <span>${cat.name}</span>
+        `;
+        if (window.lucide) {
+          window.lucide.createIcons({ root: selectedCatInfoBox });
+        }
+      }
+
+      // Lắng nghe thay đổi của select ẩn để cập nhật giao diện trigger hiển thị
+      txCategory?.addEventListener('change', updateTriggerDisplay);
+      
+      // Quan sát thay đổi DOM của select ẩn (để cập nhật khi app.js thay đổi ngầm)
+      const observer = new MutationObserver(updateTriggerDisplay);
+      if (txCategory) {
+        observer.observe(txCategory, { childList: true, attributes: true });
+      }
+
+      // Mở Bottom Sheet Chọn Danh Mục
+      txCategoryTrigger?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        // Xác định loại giao dịch hiện tại (expense hoặc income)
+        const activeType = document.querySelector('input[name="type"]:checked')?.value || 'expense';
+        const allCats = window.apiService?.getCategories() || {};
+        const categories = Object.values(allCats).filter(cat => cat.type === activeType);
+        
+        // Lấy danh mục hiện đang được chọn
+        selectedCategoryInSheet = txCategory.value;
+
+        // Render lưới danh mục trong Bottom Sheet
+        bottomSheetCategoryGrid.innerHTML = '';
+
+        // 1. Thêm nút "+ Thêm mới"
+        const addBtn = document.createElement('div');
+        addBtn.className = 'bottom-sheet-chip';
+        addBtn.style.borderColor = 'var(--glass-border)';
+        addBtn.innerHTML = `
+          <div class="bottom-sheet-chip-icon" style="background-color: rgba(255,255,255,0.05); color: var(--text-secondary);">
+            <i data-lucide="plus"></i>
+          </div>
+          <span>Thêm mới</span>
+        `;
+        addBtn.addEventListener('click', () => {
+          // Đóng các modal hiện tại và mở modal quản lý danh mục
+          window.uiService?.closeModal('addTransactionModal');
+          categoryBottomSheet?.classList.remove('active');
+          setTimeout(() => {
+            window.app?.openCategoryModal();
+          }, 200);
+        });
+        bottomSheetCategoryGrid.appendChild(addBtn);
+
+        // 2. Render các danh mục
+        categories.forEach(cat => {
+          const chip = document.createElement('div');
+          const isSelected = (cat.id === selectedCategoryInSheet);
+          chip.className = 'bottom-sheet-chip' + (isSelected ? ' active' : '');
+          
+          if (isSelected) {
+            chip.style.borderColor = cat.color;
+            chip.style.boxShadow = `0 0 10px ${cat.bgColor}`;
+          }
+
+          chip.innerHTML = `
+            <div class="bottom-sheet-chip-icon" style="background-color: ${cat.bgColor}; color: ${cat.color};">
+              <i data-lucide="${cat.icon || 'tag'}"></i>
+            </div>
+            <span>${cat.name}</span>
+          `;
+
+          chip.addEventListener('click', () => {
+            // Xóa active khỏi các chip khác
+            bottomSheetCategoryGrid.querySelectorAll('.bottom-sheet-chip').forEach(c => {
+              c.classList.remove('active');
+              c.style.borderColor = '';
+              c.style.boxShadow = '';
+            });
+            // Thêm active cho chip này
+            chip.classList.add('active');
+            chip.style.borderColor = cat.color;
+            chip.style.boxShadow = `0 0 10px ${cat.bgColor}`;
+            selectedCategoryInSheet = cat.id;
+            
+            if (window.uiService) {
+              window.uiService.triggerHaptic('light');
+            }
+          });
+
+          bottomSheetCategoryGrid.appendChild(chip);
+        });
+
+        if (window.lucide) {
+          window.lucide.createIcons({ root: bottomSheetCategoryGrid });
+        }
+
+        // Mở Bottom Sheet
+        categoryBottomSheet?.classList.add('active');
+        if (window.uiService) {
+          window.uiService.triggerHaptic('light');
+        }
+      });
+
+      // Đóng Bottom Sheet khi nhấn Hủy
+      btnCancelBottomSheet?.addEventListener('click', () => {
+        categoryBottomSheet?.classList.remove('active');
+      });
+
+      // Xác nhận chọn danh mục
+      btnConfirmBottomSheet?.addEventListener('click', () => {
+        if (selectedCategoryInSheet) {
+          txCategory.value = selectedCategoryInSheet;
+          txCategory.dispatchEvent(new Event('change'));
+        }
+        categoryBottomSheet?.classList.remove('active');
+        if (window.uiService) {
+          window.uiService.triggerHaptic('medium');
+        }
+      });
+
+      // Đóng Bottom Sheet khi click nền đen
+      categoryBottomSheet?.addEventListener('click', (e) => {
+        if (e.target === categoryBottomSheet) {
+          categoryBottomSheet.classList.remove('active');
+        }
+      });
+    });
+  </script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('[PWA] Service Worker registered with scope:', reg.scope))
+          .catch((err) => console.error('[PWA] Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>

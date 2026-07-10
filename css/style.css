@@ -709,6 +709,8 @@ input, select, textarea {
   opacity: 0;
   pointer-events: none;
   transition: all var(--transition-normal);
+  overscroll-behavior: none;
+  touch-action: none; /* Khóa chạm kéo trên nền đen */
 }
 .modal-overlay.active {
   opacity: 1;
@@ -725,6 +727,17 @@ input, select, textarea {
   overflow: hidden;
   transform: scale(0.92) translateY(20px);
   transition: transform var(--transition-spring);
+  overscroll-behavior: contain;
+  touch-action: pan-y; /* Chỉ cho phép cuộn dọc trong modal */
+  display: flex;
+  flex-direction: column;
+}
+/* Sửa lỗi Flexbox bị đứt gãy bởi thẻ form trong Modal */
+.modal-box form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; /* Rất quan trọng để cho phép cuộn nội dung con */
 }
 .modal-overlay.active .modal-box {
   transform: scale(1) translateY(0);
@@ -765,6 +778,9 @@ input, select, textarea {
   padding: 1.5rem;
   max-height: 75vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .form-group {
@@ -1542,4 +1558,41 @@ button:active, .radio-card:active, .filter-tab-btn:active, .cal-day-cell:active,
   transform: scale(0.94) !important;
   transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   opacity: 0.9;
+}
+
+/* =========================================================================
+   --- 16. PROGRESSIVE WEB APP (PWA) STANDALONE COMPATIBILITY STYLES ---
+   ========================================================================= */
+@media (display-mode: standalone) {
+  /* Tăng khoảng đệm an toàn phía trên đầu để tránh che mất nội dung bởi Notch / Status Bar */
+  .app-header {
+    padding-top: calc(1rem + env(safe-area-inset-top, 24px)) !important;
+  }
+
+  /* Tránh kéo giật nảy màn hình (Overscroll/Bounce effect) giống iOS */
+  body, html {
+    overscroll-behavior: none;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .main-container {
+    height: calc(100vh - 80px - env(safe-area-inset-top, 24px) - env(safe-area-inset-bottom, 12px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Khóa cuộn ngang và ngăn chặn rung lắc khi vuốt trên trang lịch sử ở di động */
+@media (max-width: 768px) {
+  #historyPageView {
+    overflow-x: hidden;
+    touch-action: pan-y;
+  }
+  .calendar-days-grid,
+  .calendar-weekdays,
+  .calendar-header-card,
+  .selected-day-card {
+    touch-action: pan-y;
+  }
 }

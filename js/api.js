@@ -6,22 +6,38 @@
 class ApiService {
   constructor() {
     this.apiUrl = CONFIG.API_URL;
-    this.keys = CONFIG.STORAGE_KEYS;
+    this.isDemo = window.IS_DEMO_PAGE === true;
+    
+    // Sao chép và thêm tiền tố demo_ cho các key lưu trữ nếu là trang demo
+    this.keys = { ...CONFIG.STORAGE_KEYS };
+    if (this.isDemo) {
+      for (const key in this.keys) {
+        this.keys[key] = 'demo_' + this.keys[key];
+      }
+    }
+    
     this.init();
   }
 
   init() {
-    // Nếu chưa có dữ liệu trong localStorage, khởi tạo mặc định
-    if (!localStorage.getItem(this.keys.TRANSACTIONS)) {
-      // Mặc định nạp dữ liệu Demo ban đầu để người dùng thấy ngay trải nghiệm
-      localStorage.setItem(this.keys.TRANSACTIONS, JSON.stringify(CONFIG.DEMO_TRANSACTIONS));
-      localStorage.setItem(this.keys.DEMO_MODE, 'true');
+    // Khởi tạo dữ liệu mặc định
+    if (this.isDemo) {
+      // Trong trang Demo, mặc định nạp dữ liệu Demo ban đầu để người dùng thấy ngay trải nghiệm
+      if (!localStorage.getItem(this.keys.TRANSACTIONS)) {
+        localStorage.setItem(this.keys.TRANSACTIONS, JSON.stringify(CONFIG.DEMO_TRANSACTIONS));
+      }
+    } else {
+      // Trong trang chính thức, khởi tạo mảng rỗng nếu chưa có dữ liệu giao dịch
+      if (!localStorage.getItem(this.keys.TRANSACTIONS)) {
+        localStorage.setItem(this.keys.TRANSACTIONS, JSON.stringify([]));
+      }
     }
+    
     if (!localStorage.getItem(this.keys.BUDGET)) {
       localStorage.setItem(this.keys.BUDGET, CONFIG.DEFAULT_BUDGET.toString());
     }
     if (!localStorage.getItem(this.keys.USER_NAME)) {
-      localStorage.setItem(this.keys.USER_NAME, 'Bạn');
+      localStorage.setItem(this.keys.USER_NAME, this.isDemo ? 'Khách Demo' : 'Bạn');
     }
     if (!localStorage.getItem(this.keys.CATEGORIES)) {
       localStorage.setItem(this.keys.CATEGORIES, JSON.stringify(CONFIG.CATEGORIES));
@@ -30,15 +46,11 @@ class ApiService {
 
   // --- QUẢN LÝ CHẾ ĐỘ DEMO & CÀI ĐẶT ---
   isDemoMode() {
-    return localStorage.getItem(this.keys.DEMO_MODE) === 'true';
+    return this.isDemo;
   }
 
   setDemoMode(isDemo) {
-    localStorage.setItem(this.keys.DEMO_MODE, isDemo ? 'true' : 'false');
-    if (isDemo) {
-      // Nạp lại dữ liệu demo vào cache nếu bật chế độ demo
-      localStorage.setItem(this.keys.TRANSACTIONS, JSON.stringify(CONFIG.DEMO_TRANSACTIONS));
-    }
+    // Giữ nguyên phương thức rỗng để tương thích ngược nếu cần thiết
   }
 
   getBudget() {
@@ -97,7 +109,7 @@ class ApiService {
     }
 
     const id = cat.id || ('cat_' + Date.now());
-    cats[id] = {
+    const savedCat = {
       id: id,
       name: cat.name || 'Danh mục mới',
       type: cat.type || 'expense',
@@ -105,29 +117,126 @@ class ApiService {
       color: cat.color || '#6366F1',
       bgColor: bgColor
     };
+    cats[id] = savedCat;
     localStorage.setItem(this.keys.CATEGORIES, JSON.stringify(cats));
-    return cats[id];
+
+    // Đồng bộ API Google Sheet ngầm (nếu không phải Demo)
+    if (!this.isDemoMode()) {
+      const params = new URLSearchParams({
+        action: 'saveCategory',
+        id: id,
+        name: savedCat.name,
+        type: savedCat.type,
+        icon: savedCat.icon,
+        color: savedCat.color,
+        bgColor: savedCat.bgColor
+      });
+      const getUrl = `${this.apiUrl}?${params.toString()}`;
+      return fetch(getUrl, { method: 'GET', mode: 'no-cors' })
+        .then(() => {
+          console.log('Đã đồng bộ danh mục lên Google Sheets:', id);
+          return savedCat;
+        })
+        .catch(err => {
+          console.warn('Lỗi đồng bộ danh mục lên Google Sheets:', err);
+          return savedCat;
+        });
+    }
+
+    return Promise.resolve(savedCat);
   }
 
   deleteCategory(id) {
     const cats = this.getCategories();
-    if (!cats[id]) return false;
+    if (!cats[id]) return Promise.resolve(false);
     
     // Đảm bảo không xóa danh mục mặc định cuối cùng của chi tiêu / thu nhập
     const type = cats[id].type;
     const sameTypeCount = Object.values(cats).filter(c => c.type === type).length;
     if (sameTypeCount <= 1) {
-      throw new Error('Bạn cần giữ lại ít nhất 1 danh mục cho phần ' + (type === 'income' ? 'Thu nhập' : 'Chi tiêu'));
+      return Promise.reject(new Error('Bạn cần giữ lại ít nhất 1 danh mục cho phần ' + (type === 'income' ? 'Thu nhập' : 'Chi tiêu')));
     }
 
     delete cats[id];
     localStorage.setItem(this.keys.CATEGORIES, JSON.stringify(cats));
-    return true;
+
+    // Đồng bộ xóa danh mục lên Google Sheet ngầm
+    if (!this.isDemoMode()) {
+      const getUrl = `${this.apiUrl}?action=deleteCategory&id=${encodeURIComponent(id)}`;
+      return fetch(getUrl, { method: 'GET', mode: 'no-cors' })
+        .then(() => {
+          console.log('Đã đồng bộ xóa danh mục trên Google Sheets:', id);
+          return true;
+        })
+        .catch(err => {
+          console.warn('Lỗi đồng bộ xóa danh mục:', err);
+          return true;
+        });
+    }
+
+    return Promise.resolve(true);
   }
 
   resetCategories() {
     localStorage.setItem(this.keys.CATEGORIES, JSON.stringify(CONFIG.CATEGORIES));
-    return CONFIG.CATEGORIES;
+
+    // Đồng bộ reset danh mục lên Google Sheet ngầm
+    if (!this.isDemoMode()) {
+      const getUrl = `${this.apiUrl}?action=resetCategories`;
+      return fetch(getUrl, { method: 'GET', mode: 'no-cors' })
+        .then(() => {
+          console.log('Đã gửi yêu cầu reset danh mục lên Google Sheets');
+          return CONFIG.CATEGORIES;
+        })
+        .catch(err => {
+          console.warn('Lỗi đồng bộ reset danh mục:', err);
+          return CONFIG.CATEGORIES;
+        });
+    }
+
+    return Promise.resolve(CONFIG.CATEGORIES);
+  }
+
+  /**
+   * Đồng bộ danh mục ngầm từ Google Sheets
+   * @param {Function} onSyncSuccess Callback khi đồng bộ thành công
+   */
+  async syncCategories(onSyncSuccess = null) {
+    if (this.isDemoMode()) return null;
+
+    return this.syncCategoriesFromGoogleSheets()
+      .then((remoteCats) => {
+        if (remoteCats && typeof remoteCats === 'object' && Object.keys(remoteCats).length > 0) {
+          localStorage.setItem(this.keys.CATEGORIES, JSON.stringify(remoteCats));
+          if (onSyncSuccess && typeof onSyncSuccess === 'function') {
+            onSyncSuccess(remoteCats);
+          }
+          return remoteCats;
+        }
+        return null;
+      })
+      .catch((err) => {
+        console.warn('Google Sheets categories sync background warning:', err);
+        return null;
+      });
+  }
+
+  async syncCategoriesFromGoogleSheets() {
+    try {
+      const url = `${this.apiUrl}?action=getCategories&t=${Date.now()}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        redirect: 'follow'
+      });
+      const result = await response.json();
+      if (result && result.status === 'success' && result.categories) {
+        return result.categories;
+      }
+      return null;
+    } catch (error) {
+      console.error('Lỗi khi tải danh mục từ Google Sheets:', error);
+      throw error;
+    }
   }
 
   // --- QUẢN LÝ GIAO DỊCH (TRANSACTIONS) ---
