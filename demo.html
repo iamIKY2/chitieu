@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Quản lý chi tiêu</title>
-  <meta name="description" content="Ứng dụng web quản lý chi tiêu cá nhân với giao diện hiện đại, chuyển động mượt mà và kết nối trực tiếp Google Sheets API.">
+  <title>Quản lý chi tiêu (Bản Demo)</title>
+  <meta name="description" content="Trải nghiệm ứng dụng quản lý chi tiêu cá nhân offline bằng dữ liệu mẫu.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
   
   <!-- PWA & Mobile App Settings -->
@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SpendMgr">
-  <link class="apple-touch-icon" rel="apple-touch-icon" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon.svg">
   
   <!-- Custom Styles -->
   <link rel="stylesheet" href="css/style.css?v=1.0.5">
@@ -23,9 +23,9 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
-  <!-- Đánh dấu trang chính thức kết nối API -->
+  <!-- Đánh dấu trang Demo -->
   <script>
-    window.IS_DEMO_PAGE = false;
+    window.IS_DEMO_PAGE = true;
   </script>
 </head>
 <body>
@@ -42,27 +42,22 @@
         <div class="header-container">
           <div class="brand-logo">
             <div>
-              <h1 class="brand-title">Chi Tiêu báo tiền</h1>
-              <div class="user-greeting">Xin chào, <span id="userGreetingName">Bạn</span>! ✨</div>
+              <h1 class="brand-title">Chi Tiêu iu tiền <span style="font-size: 0.8rem; font-weight: normal; color: var(--warning-color); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 0.1rem 0.4rem; border-radius: 4px; vertical-align: middle; margin-left: 0.5rem; display: inline-block;">DEMO</span></h1>
+              <div class="user-greeting">Xin chào, <span id="userGreetingName">Khách Demo</span>! ✨</div>
             </div>
           </div>
 
           <div class="header-actions">
-            <!-- Trạng thái kết nối Google Sheet -->
-            <div id="connectionStatusBadge" class="connection-badge badge-online" title="Trạng thái kết nối Google Sheet">
+            <!-- Trạng thái kết nối (luôn là Demo) -->
+            <div id="connectionStatusBadge" class="connection-badge badge-demo">
               <span class="status-dot"></span>
-              <span class="status-text">Đang tải...</span>
+              <span class="status-text">Bản Demo (Offline)</span>
             </div>
 
-            <!-- Nút sang trang Demo di động -->
-            <a href="demo.html" class="icon-btn" title="Trải nghiệm bản Demo (Dữ liệu mẫu)" style="color: var(--warning-color); border-color: rgba(245, 158, 11, 0.3);">
-              <i data-lucide="sparkles"></i>
+            <!-- Nút quay lại Bản chính thức -->
+            <a href="index.html" class="icon-btn" title="Quay lại Bản chính thức (Kết nối Google Sheet)" style="color: var(--accent-color); border-color: rgba(56, 189, 248, 0.3);">
+              <i data-lucide="globe"></i>
             </a>
-
-            <!-- Nút Hướng dẫn kết nối Google Sheet -->
-            <button id="btnOpenHelpModal" class="icon-btn" title="Hướng dẫn Google Sheet & API">
-              <i data-lucide="help-circle"></i>
-            </button>
 
             <!-- Nút Quản lý danh mục -->
             <button id="btnOpenCategoryModal" class="icon-btn" title="Quản lý & tùy chỉnh danh mục thu/chi">
@@ -479,16 +474,13 @@
                 </button>
               </div>
 
-              <div class="form-group" style="margin-top: 1rem;">
-                <button type="button" id="btnTestConnection" class="form-control" style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.1); color: var(--primary-color); border-color: rgba(99, 102, 241, 0.3); font-weight: 600;">
-                  <i data-lucide="wifi"></i> Kiểm tra kết nối Google Sheet
-                </button>
-              </div>
-
-              <div class="form-group" style="margin-top: 1rem;">
-                <a href="index.html" class="form-control btn-secondary" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid var(--glass-border); font-weight: 600; padding: 0.6rem; border-radius: var(--radius-md); text-align: center; box-sizing: border-box;">
-                  <i data-lucide="monitor"></i> Xem Bản Máy Tính (Desktop)
-                </a>
+              <!-- Thông báo chế độ Demo -->
+              <div class="form-group" style="margin-top: 1.5rem; padding: 1rem; background: rgba(245, 158, 11, 0.05); border-radius: var(--radius-md); border: 1px solid rgba(245, 158, 11, 0.15);">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; color: var(--warning-color);">
+                  <i data-lucide="shield-alert" style="width: 18px; height: 18px;"></i>
+                  <span style="font-weight: 600; font-size: 0.95rem;">Chế độ Demo (Offline)</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">Bạn đang trải nghiệm ứng dụng bằng dữ liệu mẫu offline cục bộ (LocalStorage). Mọi thao tác thêm/xóa giao dịch sẽ được lưu trực tiếp tại trình duyệt này.</p>
               </div>
             </div>
 
@@ -499,45 +491,6 @@
               </button>
             </div>
           </form>
-        </div>
-      </div>
-
-      <!-- 4. Modal Hướng Dẫn Google Sheet (Help) -->
-      <div id="helpModal" class="modal-overlay">
-        <div class="modal-box" style="max-width: 650px;">
-          <div class="modal-header">
-            <h3 class="modal-title"><i data-lucide="help-circle"></i> Hướng Dẫn Kết Nối Google Sheets API</h3>
-            <button class="modal-close"><i data-lucide="x"></i></button>
-          </div>
-          
-          <div class="modal-body" style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7; max-height: 60vh; overflow-y: auto;">
-            <p style="margin-bottom: 1rem; color: var(--text-primary);">Website của bạn đã được cấu hình sẵn để kết nối với Google Script API của bạn:</p>
-            <code style="display: block; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); font-size: 0.8rem; word-break: break-all; color: var(--accent-color); margin-bottom: 1.25rem;">https://script.google.com/macros/s/AKfycbyBGqCbPZS0QDCTNkAobtC1VNkytqCccZJB984sjPfSAM_ONbCivjw8-P4dLCha0gFm/exec</code>
-
-            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">1. Cấu trúc các cột trên Google Sheet:</h4>
-            <p style="margin-bottom: 1rem;">Tại trang tính đầu tiên (Sheet1 hoặc Transactions), hãy đặt tiêu đề hàng 1 theo thứ tự:</p>
-            <ul style="margin-left: 1.5rem; margin-bottom: 1.25rem;">
-              <li><b>Cột A:</b> <code>id</code> (Mã giao dịch)</li>
-              <li><b>Cột B:</b> <code>date</code> (Ngày giao dịch - YYYY-MM-DD)</li>
-              <li><b>Cột C:</b> <code>type</code> (<code>income</code> hoặc <code>expense</code>)</li>
-              <li><b>Cột D:</b> <code>category</code> (Mã danh mục: <code>food</code>, <code>shopping</code>...)</li>
-              <li><b>Cột E:</b> <code>amount</code> (Số tiền VND)</li>
-              <li><b>Cột F:</b> <code>note</code> (Ghi chú)</li>
-              <li><b>Cột G:</b> <code>createdAt</code> (Thời gian tạo)</li>
-            </ul>
-
-            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">2. Cài đặt quyền truy cập Apps Script:</h4>
-            <p style="margin-bottom: 0.5rem;">Khi triển khai (Deploy) Web App trên Google Apps Script, hãy đảm bảo:</p>
-            <ul style="margin-left: 1.5rem;">
-              <li><b>Execute as:</b> Me (Tôi)</li>
-              <li><b>Who has access:</b> <b style="color: var(--warning-color);">Anyone (Bất kỳ ai)</b> <i>(Để trình duyệt không bị chặn bởi trang đăng nhập Google)</i></li>
-            </ul>
-            <p style="margin-top: 1rem; font-size: 0.85rem; font-style: italic;">👉 Xem toàn bộ mã nguồn Apps Script chuẩn trong file <code>GOOGLE_SHEET_GUIDE.md</code> trong thư mục dự án.</p>
-          </div>
-
-          <div class="modal-footer">
-            <button type="button" class="btn-cancel" style="background: var(--primary-gradient); color: #fff;">Đã Hiểu</button>
-          </div>
         </div>
       </div>
 
