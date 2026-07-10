@@ -314,7 +314,16 @@
                 <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> Thêm / chỉnh sửa danh mục
               </button>
             </div>
-            <select id="txCategory" name="category" class="form-control" required></select>
+            <!-- Select gốc ẩn đi để giữ nguyên logic form submit -->
+            <select id="txCategory" name="category" style="display: none;" required></select>
+            <!-- trigger chọn danh mục giả lập đẹp mắt -->
+            <div class="custom-select-trigger" id="txCategoryTrigger">
+              <div class="selected-cat-info" id="selectedCatInfoBox">
+                <i data-lucide="tag" style="background-color: rgba(99, 102, 241, 0.15); color: var(--primary-color);"></i>
+                <span>Chọn danh mục...</span>
+              </div>
+              <i data-lucide="chevron-down"></i>
+            </div>
           </div>
 
           <div class="form-group">
@@ -502,6 +511,25 @@
     </div>
   </div>
 
+  <!-- Bottom Sheet Chọn Danh Mục (iOS Style) -->
+  <div id="categoryBottomSheet" class="bottom-sheet-overlay">
+    <div class="bottom-sheet-box">
+      <div class="bottom-sheet-handle"></div>
+      <div class="bottom-sheet-header">
+        <h3 class="bottom-sheet-title">Chọn danh mục</h3>
+      </div>
+      <div class="bottom-sheet-body">
+        <div class="category-grid-mobile" id="bottomSheetCategoryGrid">
+          <!-- Grid danh mục được chèn động bằng JS -->
+        </div>
+      </div>
+      <div class="bottom-sheet-footer">
+        <button type="button" class="btn-cancel" id="btnCancelBottomSheet">Hủy</button>
+        <button type="button" class="btn-primary" id="btnConfirmBottomSheet">Chọn</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
@@ -511,6 +539,154 @@
   <script src="js/charts.js?v=1.0.4"></script>
   <script src="js/ui.js?v=1.0.4"></script>
   <script src="js/app.js?v=1.0.4"></script>
+
+  <!-- Bottom Sheet Chọn Danh Mục Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const txCategory = document.getElementById('txCategory');
+      const selectedCatInfoBox = document.getElementById('selectedCatInfoBox');
+      const categoryBottomSheet = document.getElementById('categoryBottomSheet');
+      const txCategoryTrigger = document.getElementById('txCategoryTrigger');
+      const bottomSheetCategoryGrid = document.getElementById('bottomSheetCategoryGrid');
+      const btnCancelBottomSheet = document.getElementById('btnCancelBottomSheet');
+      const btnConfirmBottomSheet = document.getElementById('btnConfirmBottomSheet');
+      let selectedCategoryInSheet = null;
+
+      // Hàm cập nhật nhãn trigger hiển thị bên ngoài
+      function updateTriggerDisplay() {
+        if (!txCategory || !selectedCatInfoBox) return;
+        const selectedId = txCategory.value;
+        const allCats = window.apiService?.getCategories() || {};
+        const cat = allCats[selectedId] || { name: 'Chọn danh mục...', icon: 'tag', color: '#6366F1', bgColor: 'rgba(99, 102, 241, 0.15)' };
+
+        selectedCatInfoBox.innerHTML = `
+          <i data-lucide="${cat.icon || 'tag'}" style="background-color: ${cat.bgColor || 'rgba(99, 102, 241, 0.15)'}; color: ${cat.color || 'var(--primary-color)'};"></i>
+          <span>${cat.name}</span>
+        `;
+        if (window.lucide) {
+          window.lucide.createIcons({ root: selectedCatInfoBox });
+        }
+      }
+
+      // Lắng nghe thay đổi của select ẩn để cập nhật giao diện trigger hiển thị
+      txCategory?.addEventListener('change', updateTriggerDisplay);
+      
+      // Quan sát thay đổi DOM của select ẩn (để cập nhật khi app.js thay đổi ngầm)
+      const observer = new MutationObserver(updateTriggerDisplay);
+      if (txCategory) {
+        observer.observe(txCategory, { childList: true, attributes: true });
+      }
+
+      // Mở Bottom Sheet Chọn Danh Mục
+      txCategoryTrigger?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        // Xác định loại giao dịch hiện tại (expense hoặc income)
+        const activeType = document.querySelector('input[name="type"]:checked')?.value || 'expense';
+        const allCats = window.apiService?.getCategories() || {};
+        const categories = Object.values(allCats).filter(cat => cat.type === activeType);
+        
+        // Lấy danh mục hiện đang được chọn
+        selectedCategoryInSheet = txCategory.value;
+
+        // Render lưới danh mục trong Bottom Sheet
+        bottomSheetCategoryGrid.innerHTML = '';
+
+        // 1. Thêm nút "+ Thêm mới"
+        const addBtn = document.createElement('div');
+        addBtn.className = 'bottom-sheet-chip';
+        addBtn.style.borderColor = 'var(--glass-border)';
+        addBtn.innerHTML = `
+          <div class="bottom-sheet-chip-icon" style="background-color: rgba(255,255,255,0.05); color: var(--text-secondary);">
+            <i data-lucide="plus"></i>
+          </div>
+          <span>Thêm mới</span>
+        `;
+        addBtn.addEventListener('click', () => {
+          // Đóng các modal hiện tại và mở modal quản lý danh mục
+          window.uiService?.closeModal('addTransactionModal');
+          categoryBottomSheet?.classList.remove('active');
+          setTimeout(() => {
+            window.app?.openCategoryModal();
+          }, 200);
+        });
+        bottomSheetCategoryGrid.appendChild(addBtn);
+
+        // 2. Render các danh mục
+        categories.forEach(cat => {
+          const chip = document.createElement('div');
+          const isSelected = (cat.id === selectedCategoryInSheet);
+          chip.className = 'bottom-sheet-chip' + (isSelected ? ' active' : '');
+          
+          if (isSelected) {
+            chip.style.borderColor = cat.color;
+            chip.style.boxShadow = `0 0 10px ${cat.bgColor}`;
+          }
+
+          chip.innerHTML = `
+            <div class="bottom-sheet-chip-icon" style="background-color: ${cat.bgColor}; color: ${cat.color};">
+              <i data-lucide="${cat.icon || 'tag'}"></i>
+            </div>
+            <span>${cat.name}</span>
+          `;
+
+          chip.addEventListener('click', () => {
+            // Xóa active khỏi các chip khác
+            bottomSheetCategoryGrid.querySelectorAll('.bottom-sheet-chip').forEach(c => {
+              c.classList.remove('active');
+              c.style.borderColor = '';
+              c.style.boxShadow = '';
+            });
+            // Thêm active cho chip này
+            chip.classList.add('active');
+            chip.style.borderColor = cat.color;
+            chip.style.boxShadow = `0 0 10px ${cat.bgColor}`;
+            selectedCategoryInSheet = cat.id;
+            
+            if (window.uiService) {
+              window.uiService.triggerHaptic('light');
+            }
+          });
+
+          bottomSheetCategoryGrid.appendChild(chip);
+        });
+
+        if (window.lucide) {
+          window.lucide.createIcons({ root: bottomSheetCategoryGrid });
+        }
+
+        // Mở Bottom Sheet
+        categoryBottomSheet?.classList.add('active');
+        if (window.uiService) {
+          window.uiService.triggerHaptic('light');
+        }
+      });
+
+      // Đóng Bottom Sheet khi nhấn Hủy
+      btnCancelBottomSheet?.addEventListener('click', () => {
+        categoryBottomSheet?.classList.remove('active');
+      });
+
+      // Xác nhận chọn danh mục
+      btnConfirmBottomSheet?.addEventListener('click', () => {
+        if (selectedCategoryInSheet) {
+          txCategory.value = selectedCategoryInSheet;
+          txCategory.dispatchEvent(new Event('change'));
+        }
+        categoryBottomSheet?.classList.remove('active');
+        if (window.uiService) {
+          window.uiService.triggerHaptic('medium');
+        }
+      });
+
+      // Đóng Bottom Sheet khi click nền đen
+      categoryBottomSheet?.addEventListener('click', (e) => {
+        if (e.target === categoryBottomSheet) {
+          categoryBottomSheet.classList.remove('active');
+        }
+      });
+    });
+  </script>
 
   <!-- PWA Service Worker Registration -->
   <script>
