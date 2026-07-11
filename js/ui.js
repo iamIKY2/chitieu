@@ -370,33 +370,58 @@ class UiService {
   /**
    * Render bộ chọn Icon (Icon Picker Grid)
    */
+  
   renderIconPicker(onSelectCallback) {
     const container = document.getElementById('iconPickerGrid');
     if (!container) return;
 
-    const popularIcons = [
-      'utensils', 'shopping-bag', 'car', 'zap', 'film', 'heart', 'book-open', 'more-horizontal',
-      'dollar-sign', 'gift', 'trending-up', 'plus-circle', 'home', 'coffee', 'plane', 'smartphone',
-      'wifi', 'tv', 'music', 'shopping-cart', 'credit-card', 'briefcase', 'award', 'smile',
-      'shield', 'star', 'sun', 'camera', 'headphones', 'key', 'layers', 'package'
+    // Thay đổi class của container để áp dụng layout mới
+    container.className = 'icon-picker-container';
+
+    // Dữ liệu icon đã được phân nhóm giống hình ảnh
+    const iconGroups = [
+      { label: 'Ăn uống', icons: ['utensils', 'utensils-crossed', 'pizza', 'coffee', 'cup-soda', 'wine', 'beer', 'glass-water', 'cake', 'chef-hat'] },
+      { label: 'Giao thông & Giao hàng', icons: ['car', 'bus', 'truck', 'bike', 'train-front', 'plane', 'ship', 'navigation', 'map-pin', 'fuel'] },
+      { label: 'Mua sắm', icons: ['shopping-cart', 'shopping-bag', 'tag', 'tags', 'gift', 'store', 'credit-card', 'smartphone', 'watch'] },
+      { label: 'Kinh doanh & Con người', icons: ['user', 'users', 'briefcase', 'pie-chart', 'bar-chart-2', 'building', 'handshake', 'contact', 'globe'] },
+      { label: 'Tài chính & Tiền bạc', icons: ['dollar-sign', 'coins', 'wallet', 'piggy-bank', 'banknote', 'landmark', 'receipt', 'percent', 'trending-up'] },
+      { label: 'Lịch & Giáo dục', icons: ['calendar', 'graduation-cap', 'book-open', 'book', 'lightbulb', 'school', 'pen-tool', 'clipboard', 'award'] },
+      { label: 'Nhà cửa & Sinh hoạt', icons: ['home', 'sofa', 'tv', 'lamp', 'armchair', 'router', 'bath', 'key', 'wifi'] },
+      { label: 'Sức khỏe & Thể dục', icons: ['heart', 'activity', 'stethoscope', 'dumbbell', 'cross', 'pill', 'syringe', 'thermometer', 'smile'] },
+      { label: 'Du lịch & Giải trí', icons: ['luggage', 'ticket', 'compass', 'map', 'camera', 'palmtree', 'tent', 'gamepad-2', 'music', 'video', 'headphones'] }
     ];
 
     container.innerHTML = '';
-    popularIcons.forEach(iconName => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'icon-picker-item ' + (iconName === this.selectedCatIcon ? 'active' : '');
-      btn.innerHTML = `<i data-lucide="${iconName}"></i>`;
-      btn.title = iconName;
 
-      btn.addEventListener('click', () => {
-        container.querySelectorAll('.icon-picker-item').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.selectedCatIcon = iconName;
-        if (onSelectCallback) onSelectCallback(iconName);
+    iconGroups.forEach(group => {
+      // 1. Tạo tiêu đề cho từng nhóm (Ví dụ: "Ăn uống")
+      const title = document.createElement('div');
+      title.className = 'icon-category-title';
+      title.textContent = group.label;
+      container.appendChild(title);
+
+      // 2. Tạo lưới chứa icon của nhóm đó
+      const grid = document.createElement('div');
+      grid.className = 'icon-picker-grid-inner';
+
+      group.icons.forEach(iconName => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'icon-picker-item ' + (iconName === this.selectedCatIcon ? 'active' : '');
+        btn.innerHTML = `<i data-lucide="${iconName}"></i>`;
+        btn.title = iconName;
+
+        btn.addEventListener('click', () => {
+          container.querySelectorAll('.icon-picker-item').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.selectedCatIcon = iconName;
+          if (onSelectCallback) onSelectCallback(iconName);
+        });
+
+        grid.appendChild(btn);
       });
 
-      container.appendChild(btn);
+      container.appendChild(grid);
     });
 
     if (window.lucide) lucide.createIcons({ root: container });

@@ -1035,16 +1035,64 @@ input, select, textarea {
   color: var(--danger-color);
 }
 
-.icon-picker-grid {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 0.5rem;
-  max-height: 160px;
+/* Container bao bọc toàn bộ danh sách phân nhóm */
+.icon-picker-container {
+  max-height: 240px;
   overflow-y: auto;
-  padding: 0.5rem;
+  padding: 0.5rem 1rem 1rem 1rem;
   background: rgba(148, 163, 184, 0.03);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
+}
+
+/* Tiêu đề của từng nhóm icon */
+.icon-category-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 1.25rem 0 0.6rem 0;
+  font-family: 'Outfit', sans-serif;
+}
+
+.icon-category-title:first-child {
+  margin-top: 0.25rem;
+}
+
+/* Lưới icon con bên trong mỗi nhóm */
+.icon-picker-grid-inner {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.5rem;
+}
+
+.icon-picker-item {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  background: transparent;
+  transition: all var(--transition-fast);
+}
+
+.icon-picker-item:hover {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-primary);
+}
+
+.icon-picker-item.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Ghi đè Responsive cho màn hình điện thoại (đảm bảo hiển thị 6 cột trên đt) */
+@media (max-width: 640px) {
+  .icon-picker-grid-inner {
+    grid-template-columns: repeat(6, 1fr) !important;
+  }
 }
 
 .icon-picker-item {
