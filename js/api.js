@@ -132,13 +132,31 @@ class ApiService {
         bgColor: savedCat.bgColor
       });
       const getUrl = `${this.apiUrl}?${params.toString()}`;
-      return fetch(getUrl, { method: 'GET', mode: 'no-cors' })
-        .then(() => {
-          console.log('Đã đồng bộ danh mục lên Google Sheets:', id);
+      
+      // Thử gọi API với redirect: 'follow' để kiểm tra xem Apps Script đã nhận lệnh hay chưa
+      return fetch(getUrl, { method: 'GET', redirect: 'follow' })
+        .then(async (res) => {
+          try {
+            const result = await res.json();
+            if (result && result.status === 'success') {
+              console.log('✅ Đã đồng bộ danh mục lên Google Sheets thành công:', id);
+            } else if (result && (result.status === 'error' || result.message)) {
+              console.warn('⚠️ Google Sheets API không thể lưu danh mục:', result.message);
+              if (result.message && result.message.includes('Invalid action')) {
+                if (window.uiService) {
+                  window.uiService.showToast('⚠️ Google Apps Script chưa được tạo Bản triển khai mới (New Deployment)! Vui lòng xem hướng dẫn New Deployment.', 'error');
+                }
+              }
+            }
+          } catch (e) {
+            console.log('Đã gửi yêu cầu lưu danh mục lên Google Sheets');
+          }
           return savedCat;
         })
         .catch(err => {
-          console.warn('Lỗi đồng bộ danh mục lên Google Sheets:', err);
+          // Fallback dùng no-cors nếu trình duyệt cản trở bởi CORS
+          fetch(getUrl, { method: 'GET', mode: 'no-cors' }).catch(e => console.warn(e));
+          console.warn('Lỗi đồng bộ danh mục lên Google Sheets (đang dùng fallback):', err);
           return savedCat;
         });
     }
@@ -163,12 +181,24 @@ class ApiService {
     // Đồng bộ xóa danh mục lên Google Sheet ngầm
     if (!this.isDemoMode()) {
       const getUrl = `${this.apiUrl}?action=deleteCategory&id=${encodeURIComponent(id)}`;
-      return fetch(getUrl, { method: 'GET', mode: 'no-cors' })
-        .then(() => {
-          console.log('Đã đồng bộ xóa danh mục trên Google Sheets:', id);
+      return fetch(getUrl, { method: 'GET', redirect: 'follow' })
+        .then(async (res) => {
+          try {
+            const result = await res.json();
+            if (result && result.status === 'success') {
+              console.log('✅ Đã đồng bộ xóa danh mục trên Google Sheets:', id);
+            } else if (result && result.message && result.message.includes('Invalid action')) {
+              if (window.uiService) {
+                window.uiService.showToast('⚠️ Google Apps Script chưa tạo Bản triển khai mới (New Deployment)!', 'error');
+              }
+            }
+          } catch (e) {
+            console.log('Đã gửi yêu cầu xóa danh mục lên Google Sheets');
+          }
           return true;
         })
         .catch(err => {
+          fetch(getUrl, { method: 'GET', mode: 'no-cors' }).catch(e => console.warn(e));
           console.warn('Lỗi đồng bộ xóa danh mục:', err);
           return true;
         });
@@ -183,12 +213,22 @@ class ApiService {
     // Đồng bộ reset danh mục lên Google Sheet ngầm
     if (!this.isDemoMode()) {
       const getUrl = `${this.apiUrl}?action=resetCategories`;
-      return fetch(getUrl, { method: 'GET', mode: 'no-cors' })
-        .then(() => {
-          console.log('Đã gửi yêu cầu reset danh mục lên Google Sheets');
+      return fetch(getUrl, { method: 'GET', redirect: 'follow' })
+        .then(async (res) => {
+          try {
+            const result = await res.json();
+            if (result && result.status === 'success') {
+              console.log('✅ Đã reset danh mục trên Google Sheets');
+            } else if (result && result.message && result.message.includes('Invalid action')) {
+              if (window.uiService) {
+                window.uiService.showToast('⚠️ Google Apps Script chưa tạo Bản triển khai mới (New Deployment)!', 'error');
+              }
+            }
+          } catch (e) {}
           return CONFIG.CATEGORIES;
         })
         .catch(err => {
+          fetch(getUrl, { method: 'GET', mode: 'no-cors' }).catch(e => console.warn(e));
           console.warn('Lỗi đồng bộ reset danh mục:', err);
           return CONFIG.CATEGORIES;
         });

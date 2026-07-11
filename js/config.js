@@ -5,7 +5,7 @@
 
 const CONFIG = {
   // Đường dẫn API Google Apps Script của bạn
-  API_URL: 'https://script.google.com/macros/s/AKfycbyBGqCbPZS0QDCTNkAobtC1VNkytqCccZJB984sjPfSAM_ONbCivjw8-P4dLCha0gFm/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbyK6MP86Twyh4UAGqACHmYmxgdxh_5Zhi7RGrqfsQozEsKZFs6ZUwquHA-yZuiv_TDZ/exec',
   
   // Ngân sách tháng mặc định (VND)
   DEFAULT_BUDGET: 10000000,
